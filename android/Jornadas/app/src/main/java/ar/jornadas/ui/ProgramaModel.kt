@@ -12,7 +12,9 @@ class ProgramaModel(app: Application) : AndroidViewModel(app) {
     val mesa = servicios.mesa
     private val repo = servicios.agenda
     val charlas = repo.programa.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val dia = MutableStateFlow(0)
+    /** null = desconocido, false = sin edición descargada, true = hay edición. */
+    val hayEdicion = repo.edicion.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val dia =MutableStateFlow(0)
     val aviso = MutableStateFlow("")
     val cargando = MutableStateFlow(false)
 
