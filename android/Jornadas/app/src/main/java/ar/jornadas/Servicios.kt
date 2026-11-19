@@ -7,8 +7,10 @@ import ar.jornadas.lab.ServicioLocal
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.atomic.AtomicBoolean
 
-class Servicios(context: Context) {
+/** Singleton por proceso: ServicioLocal, Room y el contador de llamadas viven lo que vive el proceso. */
+class Servicios private constructor(context: Context) {
     val mesa = ServicioLocal(context)
     private val archivo = Room.databaseBuilder(context, Archivo::class.java, "cartelera.db")
         .addMigrations(MIGRATION_1_2).build()
@@ -16,4 +18,15 @@ class Servicios(context: Context) {
         .client(OkHttpClient.Builder().addInterceptor(mesa).build())
         .addConverterFactory(GsonConverterFactory.create()).build().create(ProgramaApi::class.java)
     val agenda = AgendaRepository(api, archivo.cartelera())
+
+    /** Una sola carga automática por proceso. */
+    val cargaInicial = AtomicBoolean(false)
+
+    companion object {
+        @Volatile private var instancia: Servicios? = null
+
+        fun get(context: Context): Servicios = instancia ?: synchronized(this) {
+            instancia ?: Servicios(context.applicationContext).also { instancia = it }
+        }
+    }
 }

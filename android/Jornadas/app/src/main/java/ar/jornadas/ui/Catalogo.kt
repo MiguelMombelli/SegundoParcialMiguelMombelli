@@ -13,22 +13,32 @@ import ar.jornadas.data.Charla
 
 @Composable
 fun Catalogo(model: ProgramaModel, abrir: (String) -> Unit) {
-    LaunchedEffect(Unit) { model.recargar() }
     val dia by model.dia.collectAsStateWithLifecycle()
     var tema by remember { mutableStateOf("Todos") }
     val fichas by model.charlas.collectAsStateWithLifecycle()
-    val aviso by model.aviso.collectAsStateWithLifecycle()
+    val hayEdicion by model.hayEdicion.collectAsStateWithLifecycle()
+    val fallo by model.fallo.collectAsStateWithLifecycle()
     val cargando by model.cargando.collectAsStateWithLifecycle()
     Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.dia.value = it }
     val temas = listOf("Todos", "Android", "Datos", "Calidad")
     Selector(temas, temas.indexOf(tema)) { tema = temas[it] }
     TextButton(onClick = model::recargar) { Text("Actualizar") }
     if (cargando) LinearProgressIndicator(Modifier.fillMaxWidth())
-    if (aviso.isNotEmpty()) {
-        Text(aviso)
-        OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
-    } else {
-        Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, abrir)
+    // hayEdicion == null: Room todavía no emitió; no mostrar error ni vacío.
+    when (hayEdicion) {
+        null -> Unit
+        false -> if (fallo) {
+            Text("No se pudo consultar el programa")
+            OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
+        }
+        true -> {
+            if (fallo) Text("Sin señal, usando datos guardados")
+            if (fichas.isEmpty()) {
+                Text("No hay charlas programadas")
+            } else {
+                Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, abrir)
+            }
+        }
     }
 }
 
